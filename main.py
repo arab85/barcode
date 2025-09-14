@@ -4,6 +4,9 @@ from datetime import datetime
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill
 import os
+import barcode
+from barcode.writer import ImageWriter
+
 
 # تنظیمات اصلی پنجره
 root = tk.Tk()
@@ -63,6 +66,7 @@ search = create_frame()
 search_b = create_frame()
 search_d = create_frame()
 add = create_frame()
+delat = create_frame()
 
 def show_frame(frame):
     frame.tkraise()
@@ -83,27 +87,80 @@ tsal_var = tk.IntVar()
 oroz_var = tk.IntVar()
 omah_var = tk.IntVar()
 osal_var = tk.IntVar()
+delete_meli_var = tk.StringVar()
+search_meli_var = StringVar()
 
 def save_to_excel(filename, data_dict, sheet_name="داده‌ها"):
-    """ذخیره داده‌ها در اکسل"""
+    """ذخیره اطلاعات هر فرد به‌صورت ردیفی (افقی)"""
     try:
-        wb = Workbook()
-        ws = wb.active
-        ws.title = sheet_name
-        
-        # اضافه کردن هدر
-        ws.append(["نام آیتم", "تعداد"])
-        
-        # اضافه کردن داده‌ها
-        for item, count in data_dict.items():
-            ws.append([item, count])
-        
+        file_exists = os.path.exists(filename)
+
+        if file_exists:
+            wb = load_workbook(filename)
+            ws = wb.active
+        else:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = sheet_name
+            # نوشتن عنوان‌ها فقط یک‌بار
+            ws.append(list(data_dict.keys()))
+
+        # نوشتن مقادیر (ردیف جدید برای هر فرد)
+        ws.append(list(data_dict.values()))
+
         wb.save(filename)
         return True
     except Exception as e:
-        print(f"خطا در ذخیره فایل {filename}: {e}")
+        print(f"❌ خطا در ذخیره فایل {filename}: {e}")
         return False
+
+
+def save_data_and_generate_barcode():
+    result_label.config(text="⏳ لطفاً صبر کنید...", fg="blue")
+    add.after(1000, do_save_and_generate)  # بعد از ۱ ثانیه تابع اصلی رو اجرا کنه
+
+def do_save_and_generate():
+    data_dict = {
+        "نام": str(fname_var.get()).strip(),
+        "فامیلی": str(lname_var.get()).strip(),
+        "نام پدر": str(pedar_var.get()).strip(),
+        "کد ملی": str(meli_var.get()).strip(),
+        "شناسه بسیج": str(shenasi_var.get()).strip(),
+        "وضعیت عضویت": str(vaz_var.get()).strip(),
+        "روز تولد": str(troz_var.get()).strip(),
+        "ماه تولد": str(tmah_var.get()).strip(),
+        "سال تولد": str(tsal_var.get()).strip(),
+        "روز عضویت": str(oroz_var.get()).strip(),
+        "ماه عضویت": str(omah_var.get()).strip(),
+        "سال عضویت": str(osal_var.get()).strip(),
+    }
+
+    # بررسی اینکه هیچ‌کدام از فیلدها خالی نباشد
+    empty_fields = [key for key, value in data_dict.items() if value == ""]
+    if empty_fields:
+        result_label.config(text=f"❌ لطفاً همه فیلدها را پر کنید (خالی: {', '.join(empty_fields)})", fg="red")
+        return
+
+    # ذخیره در اکسل
+    success = save_to_excel("member_data.xlsx", data_dict)
     
+    if success:
+        result_label.config(text="✅ ذخیره با موفقیت انجام شد", fg="green")
+    else:
+        result_label.config(text="❌ خطا در ذخیره اطلاعات", fg="red")
+
+    # ساخت بارکد از کد ملی
+    code = data_dict["کد ملی"]
+    if code:
+        try:
+            barcode_class = barcode.get_barcode_class('code128')
+            my_barcode = barcode_class(code, writer=ImageWriter())
+            barcode_filename = my_barcode.save("barcode_image")
+            # اگر خواستی: show_barcode_image(barcode_filename + ".png")
+        except Exception as e:
+            print(f"خطا در ساخت بارکد: {e}")
+
+
 # --- ایجاد ویجت‌های مشترک ---
 def create_button(parent, text, command, x=None, y=None, width=20, height=2):
     btn = tk.Button(parent, text=text, font=FONTS["normal"], bg=COLORS["accent"], 
@@ -132,7 +189,40 @@ def create_entry(parent, textvariable, x=None, y=None, width=20):
     else:
         entry.pack(pady=5)
     return entry
+#حذف کاربر
 
+def delete_person_by_national_code(widget):
+    national_code = str(widget.get()).strip()
+    result_labe.config(text="صبر ", fg="blue")
+    delat.after(1000, lambda: show_frame(home)) 
+    if not national_code:
+        result_labe.config(text="❌ لطفاً کد ملی را وارد کنید")
+        return
+
+    try:
+        wb = load_workbook("member_data.xlsx")
+        ws = wb.active
+        
+        row_to_delete = None
+        for row in ws.iter_rows(min_row=2, values_only=False):  # فرض بر اینه که ردیف اول عنوان‌هاست
+            for cell in row:
+                if cell.value == national_code:
+                    row_to_delete = cell.row
+                    break
+            if row_to_delete:
+                break
+
+        if row_to_delete:
+            ws.delete_rows(row_to_delete, 1)
+            wb.save("member_data.xlsx")
+            result_labe.config(text="✅ فرد با موفقیت حذف شد")
+        else:
+            result_labe.config(text="❌ فردی با این کد ملی پیدا نشد")
+
+    except FileNotFoundError:
+        result_labe.config(text="❌ فایل اکسل پیدا نشد")
+    except Exception as e:
+        result_labe.config(text=f"❌ خطا در حذف: {e}")
 
 # ورود
 def check():
@@ -162,10 +252,11 @@ create_button(home, "اضافه کردن اعضا ", lambda: show_frame(add), x=
 create_button(home, "خروج", root.quit, x=100, y=500)
 
 #سرچ
-create_label(search, "جستجو اعضا", "title", x=1200, y=300)
-create_button(search, "جستجو اعضا با اسکن بارکد", lambda: show_frame(search_b), x=100, y=100)
-create_button(search, " جستجو اعضا به صورت دستی", lambda: show_frame(search_d), x=100, y=300)
-create_button(search, "بازگشت", lambda: show_frame(home), x=100, y=500)
+
+create_label(add, "کد ملی برای جستجو", x=600, y=400)
+create_entry(add, search_meli_var, x=500, y=440)
+create_button(add, "جستجو", lambda: search_person_by_national_code(search_meli_var), x=600, y=480)
+
 
 #افزودن اعضا
 create_label(add, "اضافه نمودن عضو", "title", x=650, y=10)
@@ -205,10 +296,19 @@ create_entry(add, omah_var, x=850, y=360)
 create_label(add, "سال عضویت", x=1360, y=320)
 create_entry(add, osal_var, x=1250, y=360)
 
-create_button(add, "اضافه شود", check, x=600, y=500)
-create_button(add, "ساختن بارکد ", check, x=1100, y=500)
-result_label = create_label(add, "f",x=700,y=650)
+create_button(add, "ذخیره و ساخت بارکد", save_data_and_generate_barcode, x=600, y=500)
+create_button(add, "حذف کاربر", lambda: show_frame(delat), x=300, y=500)
+result_label = create_label(add, "",x=700,y=650)
 create_button(add, "بازگشت", lambda: show_frame(home), x=100, y=500)
+
+#حذف فرد
+
+create_label(delat, "کد ملی برای حذف", x=600, y=400)
+create_entry(delat, delete_meli_var, x=500, y=440)
+result_labe = create_label(delat, "",x=700,y=650)
+create_button(delat, "حذف عضو", lambda: delete_person_by_national_code(delete_meli_var), x=600, y=480)
+create_button(delat, "بازگشت", lambda: show_frame(add), x=100, y=100)
+
 
 # برای نمایش اولیه فریم خانه
 show_frame(ramz)
