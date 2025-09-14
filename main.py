@@ -77,9 +77,12 @@ meli_var = tk.IntVar()
 shenasi_var = tk.IntVar()
 vaz_var = tk.StringVar()
 #تاریخ تولد و عضویت
-roz_var = tk.IntVar()
-mah_var = tk.IntVar()
-sal_var = tk.IntVar()
+troz_var = tk.IntVar()
+tmah_var = tk.IntVar()
+tsal_var = tk.IntVar()
+oroz_var = tk.IntVar()
+omah_var = tk.IntVar()
+osal_var = tk.IntVar()
 
 def save_to_excel(filename, data_dict, sheet_name="داده‌ها"):
     """ذخیره داده‌ها در اکسل"""
@@ -149,10 +152,63 @@ create_label(ramz, "ورود", "title", x=1200, y=300)
 create_label(ramz, "رمز را وارد کنید", "title", x=800, y=300)
 create_entry(ramz, a)
 create_button(ramz, " ورود", check)
-result_label_a = create_label(ramz, "azxswq")
+result_label_a = create_label(ramz, "")
 create_button(ramz, "خروج", root.quit, x=100, y=500)
 
+#خانه
+create_label(home, "خانه", "title", x=1200, y=300)
+create_button(home, "جستجو اعضا ", lambda: show_frame(search), x=100, y=100)
+create_button(home, "اضافه کردن اعضا ", lambda: show_frame(add), x=100, y=300)
+create_button(home, "خروج", root.quit, x=100, y=500)
 
+#سرچ
+create_label(search, "جستجو اعضا", "title", x=1200, y=300)
+create_button(search, "جستجو اعضا با اسکن بارکد", lambda: show_frame(search_b), x=100, y=100)
+create_button(search, " جستجو اعضا به صورت دستی", lambda: show_frame(search_d), x=100, y=300)
+create_button(search, "بازگشت", lambda: show_frame(home), x=100, y=500)
+
+#افزودن اعضا
+create_label(add, "اضافه نمودن عضو", "title", x=650, y=10)
+create_label(add, "اسم", x=210, y=120)
+create_entry(add, fname_var, x=100, y=160)
+
+create_label(add, "فامیلی", x=560, y=120)
+create_entry(add, lname_var, x=450, y=160)
+
+create_label(add, "نام پدر", x=960, y=120)
+create_entry(add, pedar_var, x=850, y=160)
+
+create_label(add, "کد ملی", x=1360, y=120)
+create_entry(add, meli_var, x=1250, y=160)
+
+create_label(add, "شناسه بسیج", x=210, y=220)
+create_entry(add, shenasi_var, x=100, y=260)
+
+create_label(add, "وضعیت عضویت", x=560, y=220)
+create_entry(add, vaz_var, x=450, y=260)
+
+create_label(add, "روز تولد", x=960, y=220)
+create_entry(add, troz_var, x=850, y=260)
+
+create_label(add, "ماه تولد", x=1360, y=220)
+create_entry(add, tmah_var, x=1250, y=260)
+
+create_label(add, "سال تولد", x=210, y=320)
+create_entry(add, tsal_var, x=100, y=360)
+
+create_label(add, "روز عضویت", x=560, y=320)
+create_entry(add, oroz_var, x=450, y=360)
+
+create_label(add, "ماه عضویت", x=960, y=320)
+create_entry(add, omah_var, x=850, y=360)
+
+create_label(add, "سال عضویت", x=1360, y=320)
+create_entry(add, osal_var, x=1250, y=360)
+
+create_button(add, "اضافه شود", check, x=600, y=500)
+create_button(add, "ساختن بارکد ", check, x=1100, y=500)
+result_label = create_label(add, "f",x=700,y=650)
+create_button(add, "بازگشت", lambda: show_frame(home), x=100, y=500)
 
 # برای نمایش اولیه فریم خانه
 show_frame(ramz)
