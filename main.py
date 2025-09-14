@@ -1,371 +1,256 @@
-import tkinter as tk
-import jdatetime
-from datetime import datetime
-from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill
 import os
 import barcode
+import jdatetime
 from barcode.writer import ImageWriter
-from tkinter import Toplevel, Label
+from datetime import datetime
 
-# تنظیمات اصلی پنجره
-root = tk.Tk()
-root.title("نیرو انسانی")
-root.geometry("1600x800")
-root.configure(bg="#f0f0f0")
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from tkinter import Toplevel
 
-# رنگ‌ها و فونت‌ها
-COLORS = {
-    "primary": "#2c3e50",
-    "secondary": "#34495e",
-    "accent": "#3498db",
-    "success": "#2ecc71",
-    "warning": "#f39c12",
-    "danger": "#e74c3c",
-    "light": "#ecf0f1",
-    "dark": "#2c3e50",
-    "background": "#f5f5f5"
-}
+from openpyxl import Workbook, load_workbook
 
-FONTS = {
-    "title": ("B Nazanin", 40, "bold"),
-    "heading": ("B Nazanin", 30, "bold"),
-    "subheading": ("B Nazanin", 24),
-    "normal": ("B Nazanin", 18),
-    "small": ("B Nazanin", 14)
-}
+# --- تنظیمات اولیه پنجره اصلی ---
+root = ttk.Window(themename="litera")
+root.title("مدیریت نیروی انسانی")
+root.geometry("1000x700")
+root.resizable(False, False)
+root.withdraw()  # مخفی‌کردن پنجره اصلی تا زمان ورود موفق
 
-def update_time():
-    now_gregorian = datetime.now()
-    now_jalali = jdatetime.datetime.now()
+# --- متغیرهای ورودی ---
+fname_var = ttk.StringVar()
+lname_var = ttk.StringVar()
+pedar_var = ttk.StringVar()
+meli_var = ttk.StringVar()
+shenasi_var = ttk.StringVar()
+vaz_var = ttk.StringVar()
 
-    date_str = now_jalali.strftime("%Y/%m/%d")
-    time_str = now_gregorian.strftime("%H:%M:%S")
+troz_var = ttk.StringVar()
+tmah_var = ttk.StringVar()
+tsal_var = ttk.StringVar()
+oroz_var = ttk.StringVar()
+omah_var = ttk.StringVar()
+osal_var = ttk.StringVar()
 
-    label.config(text=f"{date_str}    {time_str}")
-    label.after(1000, update_time)  
+delete_meli_var = ttk.StringVar()
+search_meli_var = ttk.StringVar()
+def update_clock():
+    now = jdatetime.datetime.now()
+    # قالب تاریخ شمسی + زمان دقیق
+    time_str = now.strftime("%Y/%m/%d - %H:%M:%S")
+    clock_label.config(text=time_str)
+    clock_label.after(1000, update_clock)  # هر ۱۰۰۰ میلی ثانیه دوباره اجرا میشه
 
-# ایجاد ویجت زمان
-label = tk.Label(root, font=FONTS["normal"], fg=COLORS["primary"], bg=COLORS["background"])
-label.place(x=50, y=20)
+# ... در جایی از کد اصلی (بعد از ساخته شدن root) مثلا پایین‌تر از تعریف root:
 
-# فعال‌سازی کشیدن ردیف و ستون اصلی
-root.grid_rowconfigure(0, weight=1)
-root.grid_columnconfigure(0, weight=1)
+clock_label = ttk.Label(root, font=("B Nazanin", 16, "bold"), foreground="blue")
+clock_label.pack(side="top", pady=10)
 
-# ایجاد فریم‌ها
-def create_frame():
-    frame = tk.Frame(root, bg=COLORS["background"])
-    frame.place(x=0, y=80, width=1600, height=720)
-    return frame
-
-
-ramz = create_frame()
-home = create_frame()
-search = create_frame()
-search_b = create_frame()
-search_d = create_frame()
-add = create_frame()
-delat = create_frame()
-
-def show_frame(frame):
-    frame.tkraise()
-
-
-# متغیرهای ورودی
-fname_var = tk.StringVar()
-lname_var = tk.StringVar()
-pedar_var = tk.StringVar()
-a = tk.StringVar()
-meli_var = tk.StringVar()
-shenasi_var = tk.StringVar()
-vaz_var = tk.StringVar()
-#تاریخ تولد و عضویت
-troz_var = tk.StringVar()
-tmah_var = tk.StringVar()
-tsal_var = tk.StringVar()
-oroz_var = tk.StringVar()
-omah_var = tk.StringVar()
-osal_var = tk.StringVar()
-delete_meli_var = tk.StringVar()
-search_meli_var = tk.StringVar()
-
+update_clock()
+# --- توابع اکسل ---
 def save_to_excel(filename, data_dict, sheet_name="داده‌ها"):
-    """ذخیره اطلاعات هر فرد به‌صورت ردیفی (افقی) با هدر"""
     try:
         file_exists = os.path.exists(filename)
-
         if file_exists:
             wb = load_workbook(filename)
             ws = wb.active
-
-            # اگه فایل هست اما هنوز هیچ عنوانی نوشته نشده (فایل خالیه)
             if ws.max_row == 0:
                 ws.append(list(data_dict.keys()))
         else:
             wb = Workbook()
             ws = wb.active
             ws.title = sheet_name
-            ws.append(list(data_dict.keys()))  # نوشتن هدر
-
-        # نوشتن مقادیر (ردیف جدید برای هر فرد)
+            ws.append(list(data_dict.keys()))
         ws.append(list(data_dict.values()))
-
         wb.save(filename)
         return True
-
     except Exception as e:
-        print(f"❌ خطا در ذخیره فایل {filename}: {e}")
+        print("خطا در ذخیره فایل:", e)
         return False
 
-#ذخیره اطلاعات
-
+# --- ذخیره و بارکد ---
 def save_data_and_generate_barcode():
-    result_label.config(text="⏳ لطفاً صبر کنید...", fg="blue")
-    add.after(1000, do_save_and_generate)  # بعد از ۱ ثانیه تابع اصلی رو اجرا کنه
+    status_label_add.config(text="⏳ لطفاً صبر کنید...", bootstyle="info")
+    root.after(800, do_save_and_generate)
 
 def do_save_and_generate():
     data_dict = {
-        "نام": str(fname_var.get()).strip(),
-        "فامیلی": str(lname_var.get()).strip(),
-        "نام پدر": str(pedar_var.get()).strip(),
-        "کد ملی": str(meli_var.get()).strip(),
-        "شناسه بسیج": str(shenasi_var.get()).strip(),
-        "وضعیت عضویت": str(vaz_var.get()).strip(),
-        "روز تولد": str(troz_var.get()).strip(),
-        "ماه تولد": str(tmah_var.get()).strip(),
-        "سال تولد": str(tsal_var.get()).strip(),
-        "روز عضویت": str(oroz_var.get()).strip(),
-        "ماه عضویت": str(omah_var.get()).strip(),
-        "سال عضویت": str(osal_var.get()).strip(),
+        "نام": fname_var.get().strip(),
+        "فامیلی": lname_var.get().strip(),
+        "نام پدر": pedar_var.get().strip(),
+        "کد ملی": meli_var.get().strip(),
+        "شناسه بسیج": shenasi_var.get().strip(),
+        "وضعیت عضویت": vaz_var.get().strip(),
+        "روز تولد": troz_var.get().strip(),
+        "ماه تولد": tmah_var.get().strip(),
+        "سال تولد": tsal_var.get().strip(),
+        "روز عضویت": oroz_var.get().strip(),
+        "ماه عضویت": omah_var.get().strip(),
+        "سال عضویت": osal_var.get().strip(),
     }
 
-    # بررسی اینکه هیچ‌کدام از فیلدها خالی نباشد
-    empty_fields = [key for key, value in data_dict.items() if value == ""]
-    if empty_fields:
-        result_label.config(text=f"❌ لطفاً همه فیلدها را پر کنید (خالی: {', '.join(empty_fields)})", fg="red")
+    empty = [k for k, v in data_dict.items() if v == ""]
+    if empty:
+        status_label_add.config(text=f"❌ لطفاً فیلد‌ها را کامل کنید: {', '.join(empty)}", bootstyle="danger")
         return
 
-    # ذخیره در اکسل
-    success = save_to_excel("member_data.xlsx", data_dict)
-    
-    if success:
-        result_label.config(text="✅ ذخیره با موفقیت انجام شد", fg="green")
+    ok = save_to_excel("member_data.xlsx", data_dict)
+    if ok:
+        status_label_add.config(text="✅ ذخیره با موفقیت انجام شد", bootstyle="success")
     else:
-        result_label.config(text="❌ خطا در ذخیره اطلاعات", fg="red")
+        status_label_add.config(text="❌ خطا در ذخیره اطلاعات", bootstyle="danger")
 
-    # ساخت بارکد از کد ملی
     code = data_dict["کد ملی"]
     if code:
         try:
             barcode_class = barcode.get_barcode_class('code128')
             my_barcode = barcode_class(code, writer=ImageWriter())
-            barcode_filename = my_barcode.save("barcode_image")
-            # اگر خواستی: show_barcode_image(barcode_filename + ".png")
+            my_barcode.save("barcode_image")
         except Exception as e:
-            print(f"خطا در ساخت بارکد: {e}")
+            print("خطا در ساخت بارکد:", e)
 
+# --- جستجو ---
+def search_person_by_national_code():
+    status_label_search.config(text="⏳ در حال جستجو...", bootstyle="info")
+    root.after(800, do_search_person)
 
-# --- ایجاد ویجت‌های مشترک ---
-def create_button(parent, text, command, x=None, y=None, width=20, height=2):
-    btn = tk.Button(parent, text=text, font=FONTS["normal"], bg=COLORS["accent"], 
-                   fg=COLORS["light"], relief="raised", bd=2, command=command,
-                   width=width, height=height)
-    if x is not None and y is not None:
-        btn.place(x=x, y=y)
-    else:
-        btn.pack(pady=10)
-    return btn
-
-def create_label(parent, text, font_style="normal", x=None, y=None):
-    label = tk.Label(parent, text=text, font=FONTS[font_style], 
-                    bg=COLORS["background"], fg=COLORS["dark"])
-    if x is not None and y is not None:
-        label.place(x=x, y=y)
-    else:
-        label.pack(pady=10)
-    return label
-
-def create_entry(parent, textvariable, x=None, y=None, width=20):
-    entry = tk.Entry(parent, textvariable=textvariable, font=FONTS["normal"], 
-                    width=width, justify="center", bd=2, relief="sunken")
-    if x is not None and y is not None:
-        entry.place(x=x, y=y)
-    else:
-        entry.pack(pady=5)
-    return entry
-#حذف کاربر
-
-def delete_person_by_national_code(widget):
-    national_code = str(widget.get()).strip()
-    result_labe.config(text="صبر ", fg="blue")
-    delat.after(1000, lambda: show_frame(home)) 
-    if not national_code:
-        result_labe.config(text="❌ لطفاً کد ملی را وارد کنید")
+def do_search_person():
+    nc = search_meli_var.get().strip()
+    if nc == "":
+        status_label_search.config(text="❌ لطفاً کد ملی را وارد کنید", bootstyle="danger")
         return
 
     try:
         wb = load_workbook("member_data.xlsx")
         ws = wb.active
-        
-        row_to_delete = None
-        for row in ws.iter_rows(min_row=2, values_only=False):  # فرض بر اینه که ردیف اول عنوان‌هاست
-            for cell in row:
-                if cell.value == national_code:
-                    row_to_delete = cell.row
-                    break
-            if row_to_delete:
-                break
-
-        if row_to_delete:
-            ws.delete_rows(row_to_delete, 1)
-            wb.save("member_data.xlsx")
-            result_labe.config(text="✅ فرد با موفقیت حذف شد")
-        else:
-            result_labe.config(text="❌ فردی با این کد ملی پیدا نشد")
-
     except FileNotFoundError:
-        result_labe.config(text="❌ فایل اکسل پیدا نشد")
-    except Exception as e:
-        result_labe.config(text=f"❌ خطا در حذف: {e}")
+        status_label_search.config(text="❌ فایل داده پیدا نشد", bootstyle="danger")
+        return
 
-# ورود
-def check():
-    password = a.get().strip()
-    if password:
-        if password == "1234":
-            result_label_a.config(text="خوش آمدید", fg="blue")
-            ramz.after(1000, lambda: show_frame(home)) 
-        else:
-            result_label_a.config(text="رمز اشتباه است.", fg="red")
-    else:
-        result_label_a.config(text="لطفاً همه فیلدها را پر کنید.", fg="red")
+    header = [cell.value for cell in ws[1]]
+    found_row = None
+    for r in range(2, ws.max_row + 1):
+        val = ws.cell(row=r, column=4).value
+        if val is not None and str(val).strip() == nc:
+            found_row = r
+            break
 
-#سرچ
+    if not found_row:
+        status_label_search.config(text="❌ فردی با این کد ملی پیدا نشد", bootstyle="danger")
+        return
 
-def search_person_by_national_code(widget):
-    result_label1.config(text="⏳ در حال جستجو...", fg="blue")
-    add.after(1000, lambda: do_search(widget))  # بعد از ۱ ثانیه تابع اصلی اجرا بشه
+    win = Toplevel(root)
+    win.title("اطلاعات فرد")
+    win.geometry("400x500")
+    for i, col in enumerate(header, start=1):
+        val = ws.cell(row=found_row, column=i).value
+        ttk.Label(win, text=f"{col}:", font=("B Nazanin", 14, "bold")).grid(row=i, column=0, sticky="e", padx=10, pady=5)
+        ttk.Label(win, text=f"{val}", font=("B Nazanin", 14)).grid(row=i, column=1, sticky="w", padx=10, pady=5)
 
-def do_search(widget):
-    national_code = str(widget.get()).strip()
+    status_label_search.config(text="✅ فرد پیدا شد", bootstyle="success")
 
-    if not national_code:
-        result_label1.config(text="❌ لطفاً کد ملی را وارد کنید", fg="red")
+# --- حذف ---
+def delete_person_by_national_code():
+    status_label_del.config(text="⏳ لطفاً صبر کنید...", bootstyle="info")
+    root.after(800, do_delete_person)
+
+def do_delete_person():
+    nc = delete_meli_var.get().strip()
+    if nc == "":
+        status_label_del.config(text="❌ لطفاً کد ملی را وارد کنید", bootstyle="danger")
         return
 
     try:
         wb = load_workbook("member_data.xlsx")
         ws = wb.active
-
-        header = [cell.value for cell in ws[1]]  # ردیف عنوان‌ها
-        person_row = None
-
-        for row in range(2, ws.max_row + 1):
-            cell_value = str(ws.cell(row=row, column=4).value).strip()  # ستون ۴ = کد ملی
-            if cell_value == national_code:
-                person_row = row
-                break
-
-        if not person_row:
-            result_label1.config(text="❌ فردی با این کد ملی پیدا نشد", fg="red")
-            return
-
-        # ساخت پنجره جدید برای نمایش اطلاعات
-        person_window = Toplevel()
-        person_window.title("اطلاعات فرد")
-        person_window.geometry("500x600")
-
-        # گرفتن داده‌های فرد
-        values = [ws.cell(row=person_row, column=col).value for col in range(1, len(header) + 1)]
-
-        for idx, field in enumerate(header):
-            label_text = f"{field}: {values[idx]}"
-            Label(person_window, text=label_text, font=("Tahoma", 12), anchor="w").pack(anchor="w", padx=20, pady=5)
-
-        result_label1.config(text="✅ فرد پیدا شد و اطلاعات نمایش داده شد", fg="green")
-
     except FileNotFoundError:
-        result_label1.config(text="❌ فایل اکسل پیدا نشد", fg="red")
-    except Exception as e:
-        result_label1.config(text=f"❌ خطا در جستجو: {e}", fg="red")
+        status_label_del.config(text="❌ فایل داده پیدا نشد", bootstyle="danger")
+        return
 
-#ورود
-create_label(ramz, "ورود", "title", x=1200, y=300)
-create_label(ramz, "رمز را وارد کنید", "title", x=800, y=300)
-create_entry(ramz, a)
-create_button(ramz, " ورود", check)
-result_label_a = create_label(ramz, "")
-create_button(ramz, "خروج", root.quit, x=100, y=500)
+    row_to_delete = None
+    for r in range(2, ws.max_row + 1):
+        val = ws.cell(row=r, column=4).value
+        if val is not None and str(val).strip() == nc:
+            row_to_delete = r
+            break
 
-#خانه
-create_label(home, "خانه", "title", x=1200, y=300)
-create_button(home, "جستجو اعضا ", lambda: show_frame(search), x=100, y=100)
-create_button(home, "اضافه کردن اعضا ", lambda: show_frame(add), x=100, y=300)
-create_button(home, "خروج", root.quit, x=100, y=500)
+    if row_to_delete:
+        ws.delete_rows(row_to_delete, 1)
+        wb.save("member_data.xlsx")
+        status_label_del.config(text="✅ فرد با موفقیت حذف شد", bootstyle="success")
+    else:
+        status_label_del.config(text="❌ فردی با این کد ملی پیدا نشد", bootstyle="danger")
 
-#سرچ
+# --- طراحی صفحات ---
+notebook = ttk.Notebook(root)
+frame_add = ttk.Frame(notebook, padding=20)
+frame_search = ttk.Frame(notebook, padding=20)
+frame_delete = ttk.Frame(notebook, padding=20)
+notebook.add(frame_add, text="اضافه کردن عضو")
+notebook.add(frame_search, text="جستجو")
+notebook.add(frame_delete, text="حذف عضو")
+notebook.pack(fill="both", expand=True)
 
-create_label(search, "کد ملی برای جستجو", x=600, y=400)
-create_entry(search, search_meli_var, x=500, y=440)
-create_button(search, "جستجو", lambda: search_person_by_national_code(search_meli_var), x=600, y=480)
-result_label1 = create_label(search, "",x=700,y=650)
-create_button(search, "بازگشت", lambda: show_frame(home), x=100, y=500)
+# --- فرم افزودن ---
+labels = ["نام", "فامیلی", "نام پدر", "کد ملی",
+          "شناسه بسیج", "وضعیت عضویت", "روز تولد", "ماه تولد",
+          "سال تولد", "روز عضویت", "ماه عضویت", "سال عضویت"]
+vars_ = [fname_var, lname_var, pedar_var, meli_var,
+         shenasi_var, vaz_var, troz_var, tmah_var,
+         tsal_var, oroz_var, omah_var, osal_var]
 
-#افزودن اعضا
-create_label(add, "اضافه نمودن عضو", "title", x=650, y=10)
-create_label(add, "اسم", x=210, y=120)
-create_entry(add, fname_var, x=100, y=160)
+for i, (lbl, var) in enumerate(zip(labels, vars_)):
+    row = i // 2
+    col = (i % 2) * 2
+    ttk.Label(frame_add, text=lbl + ":", font=("B Nazanin", 14)).grid(row=row, column=col, sticky="e", padx=10, pady=5)
+    ttk.Entry(frame_add, textvariable=var, font=("B Nazanin", 14)).grid(row=row, column=col+1, sticky="we", padx=10, pady=5)
 
-create_label(add, "فامیلی", x=560, y=120)
-create_entry(add, lname_var, x=450, y=160)
+status_label_add = ttk.Label(frame_add, text="", font=("B Nazanin", 14))
+status_label_add.grid(row=7, column=0, columnspan=4, pady=(20,0))
 
-create_label(add, "نام پدر", x=960, y=120)
-create_entry(add, pedar_var, x=850, y=160)
+ttk.Button(frame_add, text="ذخیره و ساخت بارکد", bootstyle=SUCCESS, command=save_data_and_generate_barcode).grid(row=8, column=0, columnspan=4, pady=20)
 
-create_label(add, "کد ملی", x=1360, y=120)
-create_entry(add, meli_var, x=1250, y=160)
+# --- فرم جستجو ---
+ttk.Label(frame_search, text="کد ملی برای جستجو:", font=("B Nazanin", 14)).grid(row=0, column=0, padx=10, pady=10, sticky="e")
+ttk.Entry(frame_search, textvariable=search_meli_var, font=("B Nazanin", 14)).grid(row=0, column=1, padx=10, pady=10, sticky="we")
+status_label_search = ttk.Label(frame_search, text="", font=("B Nazanin", 14))
+status_label_search.grid(row=1, column=0, columnspan=2, pady=(5,0))
+ttk.Button(frame_search, text="جستجو", bootstyle=INFO, command=search_person_by_national_code).grid(row=2, column=0, columnspan=2, pady=20)
 
-create_label(add, "شناسه بسیج", x=210, y=220)
-create_entry(add, shenasi_var, x=100, y=260)
+# --- فرم حذف ---
+ttk.Label(frame_delete, text="کد ملی برای حذف:", font=("B Nazanin", 14)).grid(row=0, column=0, padx=10, pady=10, sticky="e")
+ttk.Entry(frame_delete, textvariable=delete_meli_var, font=("B Nazanin", 14)).grid(row=0, column=1, padx=10, pady=10, sticky="we")
+status_label_del = ttk.Label(frame_delete, text="", font=("B Nazanin", 14))
+status_label_del.grid(row=1, column=0, columnspan=2, pady=(5,0))
+ttk.Button(frame_delete, text="حذف عضو", bootstyle=DANGER, command=delete_person_by_national_code).grid(row=2, column=0, columnspan=2, pady=20)
 
-create_label(add, "وضعیت عضویت", x=560, y=220)
-create_entry(add, vaz_var, x=450, y=260)
+# --- پنجره ورود ---
+def check_password():
+    password = password_var.get()
+    if password == "936330":  # 🔐 رمز عبور
+        login_win.destroy()
+        root.deiconify()  # نمایش برنامه اصلی
+    else:
+        login_status.config(text="❌ رمز اشتباه است", bootstyle="danger")
 
-create_label(add, "روز تولد", x=960, y=220)
-create_entry(add, troz_var, x=850, y=260)
+# ساخت پنجره لاگین
+login_win = Toplevel()
+login_win.title("ورود")
+login_win.geometry("500x400")
+login_win.resizable(False, False)
+login_win.grab_set()
 
-create_label(add, "ماه تولد", x=1360, y=220)
-create_entry(add, tmah_var, x=1250, y=260)
+password_var = ttk.StringVar()
 
-create_label(add, "سال تولد", x=210, y=320)
-create_entry(add, tsal_var, x=100, y=360)
+ttk.Label(login_win, text="رمز عبور:", font=("B Nazanin", 14)).pack(pady=20)
+ttk.Entry(login_win, textvariable=password_var, font=("B Nazanin", 14), show="*").pack(pady=5)
 
-create_label(add, "روز عضویت", x=560, y=320)
-create_entry(add, oroz_var, x=450, y=360)
+login_status = ttk.Label(login_win, text="", font=("B Nazanin", 12))
+login_status.pack(pady=5)
 
-create_label(add, "ماه عضویت", x=960, y=320)
-create_entry(add, omah_var, x=850, y=360)
+ttk.Button(login_win, text="ورود", bootstyle=PRIMARY, command=check_password).pack(pady=10)
 
-create_label(add, "سال عضویت", x=1360, y=320)
-create_entry(add, osal_var, x=1250, y=360)
+login_win.protocol("WM_DELETE_WINDOW", root.destroy)  # بستن کل برنامه اگر پنجره ورود بسته شد
 
-create_button(add, "ذخیره و ساخت بارکد", save_data_and_generate_barcode, x=600, y=500)
-create_button(add, "حذف کاربر", lambda: show_frame(delat), x=300, y=500)
-result_label = create_label(add, "",x=700,y=650)
-create_button(add, "بازگشت", lambda: show_frame(home), x=100, y=500)
-
-#حذف فرد
-
-create_label(delat, "کد ملی برای حذف", x=600, y=400)
-create_entry(delat, delete_meli_var, x=500, y=440)
-result_labe = create_label(delat, "",x=700,y=650)
-create_button(delat, "حذف عضو", lambda: delete_person_by_national_code(delete_meli_var), x=600, y=480)
-create_button(delat, "بازگشت", lambda: show_frame(add), x=100, y=100)
-
-
-# برای نمایش اولیه فریم خانه
-show_frame(ramz)
-update_time()
-
+# --- اجرای برنامه ---
 root.mainloop()
