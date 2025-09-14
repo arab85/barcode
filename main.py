@@ -6,7 +6,7 @@ from openpyxl.styles import Font, PatternFill
 import os
 import barcode
 from barcode.writer import ImageWriter
-
+from tkinter import Toplevel, Label
 
 # تنظیمات اصلی پنجره
 root = tk.Tk()
@@ -77,43 +77,48 @@ fname_var = tk.StringVar()
 lname_var = tk.StringVar()
 pedar_var = tk.StringVar()
 a = tk.StringVar()
-meli_var = tk.IntVar()
-shenasi_var = tk.IntVar()
+meli_var = tk.StringVar()
+shenasi_var = tk.StringVar()
 vaz_var = tk.StringVar()
 #تاریخ تولد و عضویت
-troz_var = tk.IntVar()
-tmah_var = tk.IntVar()
-tsal_var = tk.IntVar()
-oroz_var = tk.IntVar()
-omah_var = tk.IntVar()
-osal_var = tk.IntVar()
+troz_var = tk.StringVar()
+tmah_var = tk.StringVar()
+tsal_var = tk.StringVar()
+oroz_var = tk.StringVar()
+omah_var = tk.StringVar()
+osal_var = tk.StringVar()
 delete_meli_var = tk.StringVar()
-search_meli_var = StringVar()
+search_meli_var = tk.StringVar()
 
 def save_to_excel(filename, data_dict, sheet_name="داده‌ها"):
-    """ذخیره اطلاعات هر فرد به‌صورت ردیفی (افقی)"""
+    """ذخیره اطلاعات هر فرد به‌صورت ردیفی (افقی) با هدر"""
     try:
         file_exists = os.path.exists(filename)
 
         if file_exists:
             wb = load_workbook(filename)
             ws = wb.active
+
+            # اگه فایل هست اما هنوز هیچ عنوانی نوشته نشده (فایل خالیه)
+            if ws.max_row == 0:
+                ws.append(list(data_dict.keys()))
         else:
             wb = Workbook()
             ws = wb.active
             ws.title = sheet_name
-            # نوشتن عنوان‌ها فقط یک‌بار
-            ws.append(list(data_dict.keys()))
+            ws.append(list(data_dict.keys()))  # نوشتن هدر
 
         # نوشتن مقادیر (ردیف جدید برای هر فرد)
         ws.append(list(data_dict.values()))
 
         wb.save(filename)
         return True
+
     except Exception as e:
         print(f"❌ خطا در ذخیره فایل {filename}: {e}")
         return False
 
+#ذخیره اطلاعات
 
 def save_data_and_generate_barcode():
     result_label.config(text="⏳ لطفاً صبر کنید...", fg="blue")
@@ -236,8 +241,56 @@ def check():
     else:
         result_label_a.config(text="لطفاً همه فیلدها را پر کنید.", fg="red")
 
+#سرچ
 
+def search_person_by_national_code(widget):
+    result_label1.config(text="⏳ در حال جستجو...", fg="blue")
+    add.after(1000, lambda: do_search(widget))  # بعد از ۱ ثانیه تابع اصلی اجرا بشه
 
+def do_search(widget):
+    national_code = str(widget.get()).strip()
+
+    if not national_code:
+        result_label1.config(text="❌ لطفاً کد ملی را وارد کنید", fg="red")
+        return
+
+    try:
+        wb = load_workbook("member_data.xlsx")
+        ws = wb.active
+
+        header = [cell.value for cell in ws[1]]  # ردیف عنوان‌ها
+        person_row = None
+
+        for row in range(2, ws.max_row + 1):
+            cell_value = str(ws.cell(row=row, column=4).value).strip()  # ستون ۴ = کد ملی
+            if cell_value == national_code:
+                person_row = row
+                break
+
+        if not person_row:
+            result_label1.config(text="❌ فردی با این کد ملی پیدا نشد", fg="red")
+            return
+
+        # ساخت پنجره جدید برای نمایش اطلاعات
+        person_window = Toplevel()
+        person_window.title("اطلاعات فرد")
+        person_window.geometry("500x600")
+
+        # گرفتن داده‌های فرد
+        values = [ws.cell(row=person_row, column=col).value for col in range(1, len(header) + 1)]
+
+        for idx, field in enumerate(header):
+            label_text = f"{field}: {values[idx]}"
+            Label(person_window, text=label_text, font=("Tahoma", 12), anchor="w").pack(anchor="w", padx=20, pady=5)
+
+        result_label1.config(text="✅ فرد پیدا شد و اطلاعات نمایش داده شد", fg="green")
+
+    except FileNotFoundError:
+        result_label1.config(text="❌ فایل اکسل پیدا نشد", fg="red")
+    except Exception as e:
+        result_label1.config(text=f"❌ خطا در جستجو: {e}", fg="red")
+
+#ورود
 create_label(ramz, "ورود", "title", x=1200, y=300)
 create_label(ramz, "رمز را وارد کنید", "title", x=800, y=300)
 create_entry(ramz, a)
@@ -253,10 +306,11 @@ create_button(home, "خروج", root.quit, x=100, y=500)
 
 #سرچ
 
-create_label(add, "کد ملی برای جستجو", x=600, y=400)
-create_entry(add, search_meli_var, x=500, y=440)
-create_button(add, "جستجو", lambda: search_person_by_national_code(search_meli_var), x=600, y=480)
-
+create_label(search, "کد ملی برای جستجو", x=600, y=400)
+create_entry(search, search_meli_var, x=500, y=440)
+create_button(search, "جستجو", lambda: search_person_by_national_code(search_meli_var), x=600, y=480)
+result_label1 = create_label(search, "",x=700,y=650)
+create_button(search, "بازگشت", lambda: show_frame(home), x=100, y=500)
 
 #افزودن اعضا
 create_label(add, "اضافه نمودن عضو", "title", x=650, y=10)
