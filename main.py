@@ -64,11 +64,15 @@ search_b = create_frame()
 search_d = create_frame()
 add = create_frame()
 
+def show_frame(frame):
+    frame.tkraise()
+
 
 # متغیرهای ورودی
 fname_var = tk.StringVar()
 lname_var = tk.StringVar()
 pedar_var = tk.StringVar()
+a = tk.StringVar()
 meli_var = tk.IntVar()
 shenasi_var = tk.IntVar()
 vaz_var = tk.StringVar()
@@ -125,3 +129,33 @@ def create_entry(parent, textvariable, x=None, y=None, width=20):
     else:
         entry.pack(pady=5)
     return entry
+
+
+# ورود
+def check():
+    password = a.get().strip()
+    if password:
+        if password == "1234":
+            result_label_a.config(text="خوش آمدید", fg="blue")
+            ramz.after(1000, lambda: show_frame(home)) 
+        else:
+            result_label_a.config(text="رمز اشتباه است.", fg="red")
+    else:
+        result_label_a.config(text="لطفاً همه فیلدها را پر کنید.", fg="red")
+
+
+
+create_label(ramz, "ورود", "title", x=1200, y=300)
+create_label(ramz, "رمز را وارد کنید", "title", x=800, y=300)
+create_entry(ramz, a)
+create_button(ramz, " ورود", check)
+result_label_a = create_label(ramz, "azxswq")
+create_button(ramz, "خروج", root.quit, x=100, y=500)
+
+
+
+# برای نمایش اولیه فریم خانه
+show_frame(ramz)
+update_time()
+
+root.mainloop()
