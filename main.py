@@ -25,12 +25,9 @@ meli_var = ttk.StringVar()
 shenasi_var = ttk.StringVar()
 vaz_var = ttk.StringVar()
 
-troz_var = ttk.StringVar()
-tmah_var = ttk.StringVar()
-tsal_var = ttk.StringVar()
-oroz_var = ttk.StringVar()
-omah_var = ttk.StringVar()
-osal_var = ttk.StringVar()
+tavalod_var = ttk.StringVar()  # تاریخ تولد
+ozviat_var = ttk.StringVar()   # تاریخ عضویت
+
 
 delete_meli_var = ttk.StringVar()
 search_meli_var = ttk.StringVar()
@@ -75,19 +72,16 @@ def save_data_and_generate_barcode():
 
 def do_save_and_generate():
     data_dict = {
-        "نام": fname_var.get().strip(),
-        "فامیلی": lname_var.get().strip(),
-        "نام پدر": pedar_var.get().strip(),
-        "کد ملی": meli_var.get().strip(),
-        "شناسه بسیج": shenasi_var.get().strip(),
-        "وضعیت عضویت": vaz_var.get().strip(),
-        "روز تولد": troz_var.get().strip(),
-        "ماه تولد": tmah_var.get().strip(),
-        "سال تولد": tsal_var.get().strip(),
-        "روز عضویت": oroz_var.get().strip(),
-        "ماه عضویت": omah_var.get().strip(),
-        "سال عضویت": osal_var.get().strip(),
-    }
+    "نام": fname_var.get().strip(),
+    "فامیلی": lname_var.get().strip(),
+    "نام پدر": pedar_var.get().strip(),
+    "کد ملی": meli_var.get().strip(),
+    "شناسه بسیج": shenasi_var.get().strip(),
+    "وضعیت عضویت": vaz_var.get().strip(),
+    "تاریخ تولد": tavalod_var.get().strip(),
+    "تاریخ عضویت": ozviat_var.get().strip(),
+}
+
 
     empty = [k for k, v in data_dict.items() if v == ""]
     if empty:
@@ -100,7 +94,8 @@ def do_save_and_generate():
     else:
         status_label_add.config(text="❌ خطا در ذخیره اطلاعات", bootstyle="danger")
 
-    code = data_dict["کد ملی"]
+    code = data_dict["شناسه بسیج"]  # قبلاً: data_dict["کد ملی"]
+
     if code:
         try:
             barcode_class = barcode.get_barcode_class('code128')
@@ -117,7 +112,7 @@ def search_person_by_national_code():
 def do_search_person():
     nc = search_meli_var.get().strip()
     if nc == "":
-        status_label_search.config(text="❌ لطفاً کد ملی را وارد کنید", bootstyle="danger")
+        status_label_search.config(text="❌ لطفاً شناسه را وارد کنید", bootstyle="danger")
         return
 
     try:
@@ -129,25 +124,34 @@ def do_search_person():
 
     header = [cell.value for cell in ws[1]]
     found_row = None
+
     for r in range(2, ws.max_row + 1):
-        val = ws.cell(row=r, column=4).value
+        val = ws.cell(row=r, column=5).value  # شناسه بسیج
         if val is not None and str(val).strip() == nc:
             found_row = r
             break
 
     if not found_row:
-        status_label_search.config(text="❌ فردی با این کد ملی پیدا نشد", bootstyle="danger")
+        status_label_search.config(text="❌ فردی با این شناسه پیدا نشد", bootstyle="danger")
         return
+
+    # فقط فیلدهای مهم رو نمایش بده
+    fields_to_show = ["نام", "فامیلی", "نام پدر", "کد ملی", "شناسه بسیج", "وضعیت عضویت", "تاریخ تولد", "تاریخ عضویت"]
 
     win = Toplevel(root)
     win.title("اطلاعات فرد")
     win.geometry("400x500")
-    for i, col in enumerate(header, start=1):
-        val = ws.cell(row=found_row, column=i).value
-        ttk.Label(win, text=f"{col}:", font=("B Nazanin", 14, "bold")).grid(row=i, column=0, sticky="e", padx=10, pady=5)
-        ttk.Label(win, text=f"{val}", font=("B Nazanin", 14)).grid(row=i, column=1, sticky="w", padx=10, pady=5)
+
+    row_index = 0
+    for i, col in enumerate(header):
+        if col in fields_to_show:
+            val = ws.cell(row=found_row, column=i+1).value
+            ttk.Label(win, text=f"{col}:", font=("B Nazanin", 14, "bold")).grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
+            ttk.Label(win, text=f"{val}", font=("B Nazanin", 14)).grid(row=row_index, column=1, sticky="w", padx=10, pady=5)
+            row_index += 1
 
     status_label_search.config(text="✅ فرد پیدا شد", bootstyle="success")
+
 
 # --- حذف ---
 def delete_person_by_national_code():
@@ -157,7 +161,7 @@ def delete_person_by_national_code():
 def do_delete_person():
     nc = delete_meli_var.get().strip()
     if nc == "":
-        status_label_del.config(text="❌ لطفاً کد ملی را وارد کنید", bootstyle="danger")
+        status_label_del.config(text="❌ لطفاً شناسه بسیج  را وارد کنید", bootstyle="danger")
         return
 
     try:
@@ -169,7 +173,7 @@ def do_delete_person():
 
     row_to_delete = None
     for r in range(2, ws.max_row + 1):
-        val = ws.cell(row=r, column=4).value
+        val = ws.cell(row=r, column=5).value  # قبلاً column=4
         if val is not None and str(val).strip() == nc:
             row_to_delete = r
             break
@@ -179,7 +183,7 @@ def do_delete_person():
         wb.save("member_data.xlsx")
         status_label_del.config(text="✅ فرد با موفقیت حذف شد", bootstyle="success")
     else:
-        status_label_del.config(text="❌ فردی با این کد ملی پیدا نشد", bootstyle="danger")
+        status_label_del.config(text="❌ فردی با این شناسه بسیج  پیدا نشد", bootstyle="danger")
 
 # --- طراحی صفحات ---
 notebook = ttk.Notebook(root)
@@ -193,11 +197,9 @@ notebook.pack(fill="both", expand=True)
 
 # --- فرم افزودن ---
 labels = ["نام", "فامیلی", "نام پدر", "کد ملی",
-          "شناسه بسیج", "وضعیت عضویت", "روز تولد", "ماه تولد",
-          "سال تولد", "روز عضویت", "ماه عضویت", "سال عضویت"]
+          "شناسه بسیج", "وضعیت عضویت", "تاریخ تولد", "تاریخ عضویت"]
 vars_ = [fname_var, lname_var, pedar_var, meli_var,
-         shenasi_var, vaz_var, troz_var, tmah_var,
-         tsal_var, oroz_var, omah_var, osal_var]
+         shenasi_var, vaz_var, tavalod_var, ozviat_var]
 
 for i, (lbl, var) in enumerate(zip(labels, vars_)):
     row = i // 2
@@ -211,14 +213,14 @@ status_label_add.grid(row=7, column=0, columnspan=4, pady=(20,0))
 ttk.Button(frame_add, text="ذخیره و ساخت بارکد", bootstyle=SUCCESS, command=save_data_and_generate_barcode).grid(row=8, column=0, columnspan=4, pady=20)
 
 # --- فرم جستجو ---
-ttk.Label(frame_search, text="کد ملی برای جستجو:", font=("B Nazanin", 14)).grid(row=0, column=0, padx=10, pady=10, sticky="e")
+ttk.Label(frame_search, text="شناسه بسیج  برای جستجو:", font=("B Nazanin", 14)).grid(row=0, column=0, padx=10, pady=10, sticky="e")
 ttk.Entry(frame_search, textvariable=search_meli_var, font=("B Nazanin", 14)).grid(row=0, column=1, padx=10, pady=10, sticky="we")
 status_label_search = ttk.Label(frame_search, text="", font=("B Nazanin", 14))
 status_label_search.grid(row=1, column=0, columnspan=2, pady=(5,0))
 ttk.Button(frame_search, text="جستجو", bootstyle=INFO, command=search_person_by_national_code).grid(row=2, column=0, columnspan=2, pady=20)
 
 # --- فرم حذف ---
-ttk.Label(frame_delete, text="کد ملی برای حذف:", font=("B Nazanin", 14)).grid(row=0, column=0, padx=10, pady=10, sticky="e")
+ttk.Label(frame_delete, text="شناسه بسیج  برای حذف:", font=("B Nazanin", 14)).grid(row=0, column=0, padx=10, pady=10, sticky="e")
 ttk.Entry(frame_delete, textvariable=delete_meli_var, font=("B Nazanin", 14)).grid(row=0, column=1, padx=10, pady=10, sticky="we")
 status_label_del = ttk.Label(frame_delete, text="", font=("B Nazanin", 14))
 status_label_del.grid(row=1, column=0, columnspan=2, pady=(5,0))
